@@ -1,0 +1,15 @@
+{
+  "name": "checkprivate",
+  "version": "0.0.0",
+  "description": "Tool to check if 'private' methods (starting with an underscore) are only being accessed from a list of identifiers, like this, self, _super.",
+  "main": "index.js",
+  "dependencies": {
+    "esprima": "1.x"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Bruno Windels <bruno.windels@gmail.com>",
+  "license": "MIT"
+}
