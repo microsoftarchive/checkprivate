@@ -65,7 +65,7 @@ function formatSurroundingCodeBlock(sourceCode, range, line, lineCount) {
     var block = getExpressionWithSurroundingLines(sourceCode, range, lineCount);
     var beforeLines = block[0].split('\n'),
         afterLines = block[2].split('\n'),
-        expressionLine = colors.grey(beforeLines.pop()) + colors.red(block[1]) + colors.grey(afterLines.shift());
+        expressionLine = beforeLines.pop() + colors.red(block[1]) + afterLines.shift();
     var firstLineNumber = line - beforeLines.length;
 
     beforeLines = beforeLines.map(colors.grey);
@@ -79,7 +79,7 @@ function formatSurroundingCodeBlock(sourceCode, range, line, lineCount) {
 
 module.exports = function (allowed, filename, sourceCode, error) {
     var location = filename + ':' + error.line + ':' + error.column;
-    var block = formatSurroundingCodeBlock(sourceCode, error.range, error.line, 4);
+    var block = formatSurroundingCodeBlock(sourceCode, error.range, error.line, 2);
 
     console.error(location);
     console.error('A private member was accessed from another object than', allowed.join(', ') + ':');
