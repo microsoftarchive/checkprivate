@@ -1,36 +1,87 @@
 var colors = require('./colors');
 
-function expressionInContext(sourceCode, range, extraSize) {
+function findIndexOfLineStart(str, offset) {
+    var index = str.substring(0, offset).lastIndexOf('\n');
+    if(index !== -1) {
+        ++index;
+    }
+    return index;
+}
 
-	var start = Math.max(range[0] - extraSize, 0);
-	var end = Math.min(range[1] + extraSize, sourceCode.length);
+function findIndexOfLineEnd(str, offset) {
+    return str.indexOf('\n', offset);
+}
 
-	var beforeExpression = sourceCode.substr(start, extraSize);
-	var afterExpression = sourceCode.substr(end - extraSize, extraSize);
-	var expression = sourceCode.substr(range[0], range[1] - range[0]);
-	var context = sourceCode.substr(start, end - start);
+function findLinesRange(sourceCode, lineCount, offset) {
+    var start = offset, end = offset;
+    var startLines = lineCount + 1, endLines = lineCount + 1;
 
-	var newLineBeforeIndex = beforeExpression.lastIndexOf('\n');
-	var newLineAfterIndex = afterExpression.indexOf('\n');
+    while(start !== -1 && startLines--) {
+        start = findIndexOfLineStart(sourceCode, start - 1);
+    }
 
-	if(newLineBeforeIndex !== -1) {
-		beforeExpression = beforeExpression.substr(newLineBeforeIndex + 1);
-	}
-	if(newLineAfterIndex !== -1) {
-		afterExpression = afterExpression.substr(newLineAfterIndex + 1);
-	}
+    while(end !== -1 && endLines--) {
+        end = findIndexOfLineEnd(sourceCode, end + 1);
+    }
 
-	return [beforeExpression.trimLeft(), expression, afterExpression.trimRight()];
+    return {
+        start: start === -1 ? 0 : start + 1,
+        end: end === -1 ? sourceCode.length : end
+    };
+}
+
+function pad(n, max, character) {
+    var nStr = n+'';
+    var padCount = max - nStr.length;
+    for(var i = 0 ; i < padCount; ++i) {
+        nStr = character + nStr;
+    }
+    return nStr;
+}
+
+function getExpressionWithSurroundingLines(sourceCode, range, lineCount) {
+
+    var expressionStart = range[0],
+        expressionEnd = range[1];
+    var blockRange = findLinesRange(sourceCode, lineCount, range[0]);
+
+    var beforeExpression = sourceCode.substring(blockRange.start, expressionStart);
+    var afterExpression = sourceCode.substring(expressionEnd, blockRange.end);
+
+    var expression = sourceCode.substring(expressionStart, expressionEnd);
+
+    return [beforeExpression, expression, afterExpression];
+}
+
+function prependLineNumbers(lines, firstLineNumber) {
+    var maxLineNumber = firstLineNumber + lines.length;
+    var gutterSize = (maxLineNumber+'').length;
+    return lines.map(function(line, i) {
+        return colors.grey(pad(firstLineNumber + i, gutterSize, ' ')) + ' ' + line;
+    });
+}
+
+function formatSurroundingCodeBlock(sourceCode, range, line, lineCount) {
+    var block = getExpressionWithSurroundingLines(sourceCode, range, lineCount);
+    var beforeLines = block[0].split('\n'),
+        afterLines = block[2].split('\n'),
+        expressionLine = colors.grey(beforeLines.pop()) + colors.red(block[1]) + colors.grey(afterLines.shift());
+    var firstLineNumber = line - beforeLines.length;
+
+    beforeLines = beforeLines.map(colors.grey);
+    afterLines = afterLines.map(colors.grey);
+    var lines = beforeLines.concat(expressionLine);
+    lines = lines.concat.call(lines, afterLines);
+
+    lines = prependLineNumbers(lines, firstLineNumber);
+    return lines.join('\n');
 }
 
 module.exports = function (allowed, filename, sourceCode, error) {
-	var location = filename + ':' + error.line + ':' + error.column;
-	var context = expressionInContext(sourceCode, error.range, 100);
-	var sourceLine = 	colors.grey(context[0]) +
-						colors.bold(colors.red(context[1])) +
-						colors.grey(context[2]);
-	console.error(location);
-	console.error('   A private member was accessed from another object than', allowed.join(', ') + ':');
-	console.error();
-	console.error('   ' + sourceLine + '...');
+    var location = filename + ':' + error.line + ':' + error.column;
+    var block = formatSurroundingCodeBlock(sourceCode, error.range, error.line, 4);
+
+    console.error(location);
+    console.error('A private member was accessed from another object than', allowed.join(', ') + ':');
+    console.error(block);
 };
