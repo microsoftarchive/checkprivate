@@ -1,3 +1,5 @@
+var colors = require('./colors');
+
 function expressionInContext(sourceCode, range, extraSize) {
 
 	var start = Math.max(range[0] - extraSize, 0);
@@ -18,12 +20,17 @@ function expressionInContext(sourceCode, range, extraSize) {
 		afterExpression = afterExpression.substr(newLineAfterIndex + 1);
 	}
 
-	return beforeExpression.trimLeft() + expression + afterExpression.trimRight();
+	return [beforeExpression.trimLeft(), expression, afterExpression.trimRight()];
 }
 
 module.exports = function (allowed, filename, sourceCode, error) {
 	var location = filename + ':' + error.line + ':' + error.column;
+	var context = expressionInContext(sourceCode, error.range, 100);
+	var sourceLine = 	colors.grey(context[0]) +
+						colors.bold(colors.red(context[1])) +
+						colors.grey(context[2]);
 	console.error(location);
 	console.error('   A private member was accessed from another object than', allowed.join(', ') + ':');
-	console.error('   ...' + expressionInContext(sourceCode, error.range, 20) + '...');
+	console.error();
+	console.error('   ' + sourceLine + '...');
 };
