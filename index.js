@@ -9,7 +9,8 @@ var filename = process.argv[2];
 var sourceCode = fs.readFileSync(filename, {encoding: 'utf-8'});
 var ast = esprima.parse(sourceCode, {
 	loc: true,
-	range: true
+	range: true,
+	tolerant: true
 });
 
 var boundReportError = reportError.bind(null, allowedIdentifiers, filename, sourceCode);
